@@ -1,22 +1,25 @@
-package manager;
+package managers;
 
-import task.Epic;
-import task.Status;
-import task.Subtask;
-import task.Task;
+import tasks.Epic;
+import tasks.Status;
+import tasks.Subtask;
+import tasks.Task;
 
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.TreeSet;
 
 public class FileBackedTasksManager extends InMemoryTaskManager {
 
     public FileBackedTasksManager(String path) {
         try {
-              Files.readString(Path.of(path));
+            Files.readString(Path.of(path));
         } catch (IOException e) {
             System.out.println("Не удалось прочитать файл");
         }
@@ -86,8 +89,10 @@ public class FileBackedTasksManager extends InMemoryTaskManager {
         }
     }
 
-    //************ Сохранение текущего состояния менеджера в файл ************
-    private void save() {
+    /**
+     * Сохранение текущего состояния менеджера в файл
+     **/
+    protected void save() {
         try (BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter("src\\tasks.csv"))) {
             for (Epic epic : epics.values()) {
                 bufferedWriter.write(toString(epic) + "\n");
@@ -102,12 +107,14 @@ public class FileBackedTasksManager extends InMemoryTaskManager {
             bufferedWriter.newLine();
             bufferedWriter.write(historyToString(historyManager));
         } catch (IOException e) {
-            throw new ManagerSaveException();
+            throw new ManagerSaveException("Ошибка сохранения в файл");
         }
     }
 
-    //************ Восстановление данных из файла при запуске ************
-    private static FileBackedTasksManager loadFromFile(String file) {
+    /**
+     * Восстановление данных из файла при запуске
+     **/
+    protected static FileBackedTasksManager loadFromFile(String file) {
         FileBackedTasksManager fileBackedTasksManager = new FileBackedTasksManager(file);
         try (BufferedReader bufferedReader = new BufferedReader(new FileReader(file))) {
             while (bufferedReader.ready()) {
@@ -127,12 +134,14 @@ public class FileBackedTasksManager extends InMemoryTaskManager {
                 }
             }
         } catch (IOException e) {
-            throw new ManagerSaveException();
+            throw new ManagerSaveException("Ошибка восстановления из файла");
         }
         return fileBackedTasksManager;
     }
 
-    //************ Сохранение задачи в строку ************
+    /**
+     * Сохранение задачи в строку
+     **/
     private static String toString(Task task) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
         String taskLine;
@@ -169,7 +178,9 @@ public class FileBackedTasksManager extends InMemoryTaskManager {
         return taskLine;
     }
 
-    //************ Создание задачи из строки ************
+    /**
+     * Создание задачи из строки
+     **/
     private static Task fromString(String value) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
         String[] taskArray = value.split(", ");
@@ -225,7 +236,9 @@ public class FileBackedTasksManager extends InMemoryTaskManager {
         return task;
     }
 
-    //************ Сохранение менеджера истории в CSV ************
+    /**
+     * Сохранение менеджера истории в CSV
+     **/
     private static String historyToString(HistoryManager manager) {
         List<Task> listOfTasks = manager.getHistory();
         StringBuilder stringBuilder = new StringBuilder();
@@ -235,7 +248,9 @@ public class FileBackedTasksManager extends InMemoryTaskManager {
         return stringBuilder.toString();
     }
 
-    //************ Восстановление менеджера истории из CSV ************
+    /**
+     * Восстановление менеджера истории из CSV
+     **/
     private List<Task> historyFromString(String value) {
         String[] tasksId = value.split(", ");
         for (int i = 0; i < tasksId.length; i++) {
@@ -250,7 +265,9 @@ public class FileBackedTasksManager extends InMemoryTaskManager {
         return historyManager.getHistory();
     }
 
-    //************ Получение по идентификатору ************
+    /**
+     * Получение по идентификатору
+     **/
     @Override
     public Task getTaskById(int id) {
         Task task = super.getTaskById(id);
@@ -273,7 +290,9 @@ public class FileBackedTasksManager extends InMemoryTaskManager {
 
     }
 
-    //************ Создание ************
+    /**
+     * Создание
+     **/
     @Override
     public Task createTask(Task task) {
         Task task1 = super.createTask(task);
@@ -295,7 +314,9 @@ public class FileBackedTasksManager extends InMemoryTaskManager {
         return subtask1;
     }
 
-    //************ Обновление ************
+    /**
+     * Обновление
+     **/
     @Override
     public void updateTask(Task task) {
         super.updateTask(task);
@@ -314,7 +335,9 @@ public class FileBackedTasksManager extends InMemoryTaskManager {
         save();
     }
 
-    //************ Удаление по идентификатору ************
+    /**
+     * Удаление по идентификатору
+     **/
     @Override
     public void removeTaskById(int id) {
         super.removeTaskById(id);
@@ -332,8 +355,29 @@ public class FileBackedTasksManager extends InMemoryTaskManager {
         super.removeEpicById(id);
         save();
     }
+    //************ Удаление спика задач ************
 
-    //************ Получение списка всех подзадач эпика ************
+    @Override
+    public void removeAllTasks() {
+        super.removeAllTasks();
+        save();
+    }
+
+    @Override
+    public void removeAllSubtasks() {
+        super.removeAllSubtasks();
+        save();
+    }
+
+    @Override
+    public void removeAllEpics() {
+        super.removeAllEpics();
+        save();
+    }
+
+    /**
+     * Получение списка всех подзадач эпика
+     **/
     @Override
     public ArrayList<Subtask> getListOfSubtaskByEpic(int id) {
         ArrayList<Subtask> subtasks1 = super.getListOfSubtaskByEpic(id);
@@ -341,14 +385,18 @@ public class FileBackedTasksManager extends InMemoryTaskManager {
         return subtasks1;
     }
 
-    //************ Обновление статуса эпика ************
+    /**
+     * Обновление статуса эпика
+     **/
     @Override
     public void updateStatusEpic(Epic epic) {
         super.updateStatusEpic(epic);
         save();
     }
 
-    //************ Список просмотренных задач ************
+    /**
+     * Список просмотренных задач
+     **/
     @Override
     public List<Task> getHistory() {
         List<Task> tasks1 = super.getHistory();
@@ -356,28 +404,36 @@ public class FileBackedTasksManager extends InMemoryTaskManager {
         return tasks1;
     }
 
-    //************ Расчет продолжительности Эпика ************
+    /**
+     * Расчет продолжительности Эпика
+     **/
     @Override
     public void findDurationOfEpic(int epicId) {
         super.findDurationOfEpic(epicId);
         save();
     }
 
-    //************ Расчет времени старта Эпика ************
+    /**
+     * Расчет времени старта Эпика
+     **/
     @Override
     public void setStartTimeOfEpic(int epicId) {
         super.setStartTimeOfEpic(epicId);
         save();
     }
 
-    //************ Расчет времени окончания Эпика ************
+    /**
+     * Расчет времени окончания Эпика
+     **/
     @Override
     public void setEndTimeOfEpic(int epicId) {
         super.setEndTimeOfEpic(epicId);
         save();
     }
 
-    //************ Сортировка по времени ************
+    /**
+     * Сортировка по времени
+     **/
     @Override
     public TreeSet getPrioritizedTasks() {
         TreeSet<Task> listOfTasks1 = super.getPrioritizedTasks();
@@ -385,7 +441,9 @@ public class FileBackedTasksManager extends InMemoryTaskManager {
         return listOfTasks1;
     }
 
-    //************ Проверка задач на пересечение ************
+    /**
+     * Проверка задач на пересечение
+     **/
     @Override
     public void findIntersection() {
         super.findIntersection();

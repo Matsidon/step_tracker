@@ -1,13 +1,17 @@
-import manager.*;
+import managers.FileBackedTasksManager;
+import managers.HistoryManager;
+import managers.InMemoryHistoryManager;
+import managers.TaskManager;
 import org.junit.jupiter.api.Test;
-import task.Epic;
-import task.Status;
-import task.Subtask;
-import task.Task;
+import tasks.Epic;
+import tasks.Status;
+import tasks.Subtask;
+import tasks.Task;
 
 import java.time.LocalDateTime;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 class InMemoryHistoryManagerTest {
 

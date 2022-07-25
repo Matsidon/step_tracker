@@ -1,11 +1,36 @@
-import managers.FileBackedTasksManager;
+import managers.HTTPTaskManager;
+import managers.HttpTaskServer;
+import managers.KVServer;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import tasks.Epic;
+import tasks.Status;
+import tasks.Subtask;
+import tasks.Task;
 
-public class FileBackedTasksManagerTest extends TaskManagerTest<FileBackedTasksManager>{
+import java.io.IOException;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+public class HTTPTaskManagerTest extends FileBackedTasksManagerTest {
+    private KVServer kvServer;
+    private HttpTaskServer httpTaskServer;
+
     @BeforeEach
-    void createManager() {
-        super.manager = new FileBackedTasksManager();
+    void startServer() throws IOException {
+        kvServer = new KVServer();
+        kvServer.start();
+        httpTaskServer = new HttpTaskServer();
+    }
+
+    @AfterEach
+    void stopServer() {
+        kvServer.stopServer();
+        httpTaskServer.stopServer();
     }
 
     @Override
@@ -271,4 +296,42 @@ public class FileBackedTasksManagerTest extends TaskManagerTest<FileBackedTasksM
     void shouldFindIntersection() {
         super.shouldFindIntersection();
     }
+
+    @Test
+    void shouldLoadNullHTTPTaskManager() {
+        HTTPTaskManager manager1 = HTTPTaskManager.load();
+        ArrayList<Task> taskArrayList = manager1.getTask();
+        ArrayList<Epic> epicArrayList = manager1.getEpic();
+        ArrayList<Subtask> subtaskArrayList = manager1.getSubtask();
+        List<Task> historyList = manager1.getHistory();
+
+        assertEquals(0, taskArrayList.size());
+        assertEquals(0, epicArrayList.size());
+        assertEquals(0, subtaskArrayList.size());
+        assertEquals(0, historyList.size());
+    }
+
+    @Test
+    void shouldLoadHTTPTaskManager() {
+        Task task1 = HttpTaskServer.getManager().createTask(new Task("Задача 1", "...", Status.NEW,
+                LocalDateTime.of(2000, 1, 3, 0, 0, 0), 15));
+        Epic epic1 = HttpTaskServer.getManager().createEpic(new Epic("Эпик 1", "...", Status.NEW));
+        Subtask subtask1 = HttpTaskServer.getManager().createSubtask(new Subtask(epic1.getId(), "Сабтакс 1.1",
+                "...", Status.NEW,
+                LocalDateTime.of(2000, 1, 1, 0, 0, 0), 15));
+        HttpTaskServer.getManager().getTaskById(1);
+        HttpTaskServer.getManager().getSubtaskById(3);
+        HttpTaskServer.getManager().getEpicById(2);
+        HTTPTaskManager manager1 = HTTPTaskManager.load();
+        ArrayList<Task> taskArrayList = manager1.getTask();
+        ArrayList<Epic> epicArrayList = manager1.getEpic();
+        ArrayList<Subtask> subtaskArrayList = manager1.getSubtask();
+        List<Task> historyList = manager1.getHistory();
+
+        assertEquals(1, taskArrayList.size());
+        assertEquals(1, epicArrayList.size());
+        assertEquals(1, subtaskArrayList.size());
+        assertEquals(3, historyList.size());
+    }
+
 }

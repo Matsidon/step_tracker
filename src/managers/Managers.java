@@ -1,14 +1,13 @@
-package manager;
+package managers;
 
 public class Managers {
     public static TaskManager getDefault() {
-        return new InMemoryTaskManager();
+        return new HTTPTaskManager("http://localhost:8078");
     }
 
-    public static TaskManager getDefault(String path) {
-        return new FileBackedTasksManager(path);
-    }
     public static HistoryManager getDefaultHistory() {
         return new InMemoryHistoryManager();
     }
 }
+
+

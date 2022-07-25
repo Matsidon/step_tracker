@@ -1,13 +1,14 @@
-import manager.TaskManager;
+import managers.ManagerSaveException;
+import managers.TaskManager;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.function.Executable;
-import task.Epic;
-import task.Status;
-import task.Subtask;
-import task.Task;
+import tasks.Epic;
+import tasks.Status;
+import tasks.Subtask;
+import tasks.Task;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.TreeSet;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -15,7 +16,9 @@ import static org.junit.jupiter.api.Assertions.*;
 abstract class TaskManagerTest<T extends TaskManager> {
     protected T manager;
 
-    //************ Список задач ************
+    /**
+     * Список задач
+     **/
     @Test
     void shouldShowListOfTasks() {
         Task task1 = manager.createTask(new Task("Задача 1", "...", Status.NEW,
@@ -64,7 +67,9 @@ abstract class TaskManagerTest<T extends TaskManager> {
         assertTrue(manager.getSubtask().isEmpty());
     }
 
-    //************ Получение по идентификатору ************
+    /**
+     * Получение по идентификатору
+     **/
     @Test
     void shouldShowTask() {
         Task task1 = manager.createTask(new Task("Задача 1", "...", Status.NEW,
@@ -95,38 +100,25 @@ abstract class TaskManagerTest<T extends TaskManager> {
 
     @Test
     void shouldShowNullTask() {
-        final NullPointerException ex = assertThrows(NullPointerException.class, new Executable() {
-            @Override
-            public void execute() {
-                manager.getTaskById(1);
-            }
-        });
+        final NullPointerException ex = assertThrows(NullPointerException.class, () -> manager.getTaskById(1));
         assertNotNull(ex);
     }
 
     @Test
     void shouldShowNullEpic() {
-        final NullPointerException ex = assertThrows(NullPointerException.class, new Executable() {
-            @Override
-            public void execute() {
-                manager.getEpicById(1);
-            }
-        });
+        final NullPointerException ex = assertThrows(NullPointerException.class, () -> manager.getEpicById(1));
         assertNotNull(ex);
     }
 
     @Test
     void shouldShowNullSubtask() {
-        final NullPointerException ex = assertThrows(NullPointerException.class, new Executable() {
-            @Override
-            public void execute() {
-                manager.getSubtaskById(1);
-            }
-        });
+        final NullPointerException ex = assertThrows(NullPointerException.class, () -> manager.getSubtaskById(1));
         assertNotNull(ex);
     }
 
-    //************ Создание ************
+    /**
+     * Создание
+     **/
     @Test
     void shouldCreateTask() {
         Task task1 = new Task("Задача 1", "...", Status.NEW,
@@ -187,7 +179,9 @@ abstract class TaskManagerTest<T extends TaskManager> {
         assertEquals(2, subtaskForEqual.getId());
     }
 
-    //************ Обновление ************
+    /**
+     * Обновление
+     **/
     @Test
     void shouldUpdateTask() {
         Task task1 = manager.createTask(new Task("Задача 1", "...", Status.NEW));
@@ -218,7 +212,9 @@ abstract class TaskManagerTest<T extends TaskManager> {
         assertEquals(epic2, manager.getEpic().get(0));
     }
 
-    //************ Удаление по идентификатору ************
+    /**
+     * Удаление по идентификатору
+     **/
     @Test
     void shouldRemoveTaskById() {
         Task task1 = manager.createTask(new Task("Задача 1", "...", Status.NEW,
@@ -228,8 +224,6 @@ abstract class TaskManagerTest<T extends TaskManager> {
     }
 
     @Test
-        //todo
-        // явно проблема
     void shouldRemoveSubtaskById() {
         Epic epic1 = manager.createEpic(new Epic("Эпик 1", "...", Status.NEW));
         Subtask subtask1 = manager.createSubtask(new Subtask(epic1.getId(), "Сабтакс 1.1",
@@ -273,7 +267,9 @@ abstract class TaskManagerTest<T extends TaskManager> {
         assertEquals(1, list.size());
     }
 
-    //************ Получение списка всех подзадач эпика ************
+    /**
+     * Получение списка всех подзадач эпика
+     **/
     @Test
     void shouldGetListOfSubtaskByEpic() {
         Epic epic1 = manager.createEpic(new Epic("Эпик 1", "...", Status.NEW));
@@ -289,7 +285,9 @@ abstract class TaskManagerTest<T extends TaskManager> {
         assertEquals(0, manager.getListOfSubtaskByEpic(1).size());
     }
 
-    //************ Обновление статуса эпика ************
+    /**
+     * Обновление статуса эпика
+     **/
     @Test
     void shouldUpdateStatusEpic() {
         Epic epic1 = manager.createEpic(new Epic("Эпик 1", "...", Status.NEW));
@@ -307,7 +305,9 @@ abstract class TaskManagerTest<T extends TaskManager> {
         assertEquals(Status.NEW, epic1.getStatus());
     }
 
-    //************ Список просмотренных задач ************
+    /**
+     * Список просмотренных задач
+     **/
     @Test
     void shouldGetHistory() {
         Epic epic1 = manager.createEpic(new Epic("Эпик 1", "...", Status.NEW));
@@ -342,7 +342,9 @@ abstract class TaskManagerTest<T extends TaskManager> {
         assertEquals(0, taskList.size());
     }
 
-    //************ Расчет продолжительности Эпика ************
+    /**
+     * Расчет продолжительности Эпика
+     **/
     @Test
     void shouldSetDurationOfEpic() {
         Epic epic1 = manager.createEpic(new Epic("Эпик 1", "...", Status.NEW));
@@ -367,7 +369,9 @@ abstract class TaskManagerTest<T extends TaskManager> {
         assertEquals(0, epic1.getDuration());
     }
 
-    //************ Расчет времени старта Эпика ************
+    /**
+     * Расчет времени старта Эпика
+     **/
     @Test
     void shouldSetStartTimeOfEpic() {
         Epic epic1 = manager.createEpic(new Epic("Эпик 1", "...", Status.NEW));
@@ -391,17 +395,19 @@ abstract class TaskManagerTest<T extends TaskManager> {
         Subtask subtask3 = manager.createSubtask(new Subtask(epic1.getId(), "Сабтакс 1.3",
                 "...", Status.NEW));
         manager.setStartTimeOfEpic(1);
-        assertEquals((LocalDateTime.MAX), epic1.getStartTime().get());
+        assertEquals(Optional.empty(), epic1.getStartTime());
     }
 
     @Test
     void shouldSetNullStartTimeOfNullEpic() {
         Epic epic1 = manager.createEpic(new Epic("Эпик 1", "...", Status.NEW));
         manager.setStartTimeOfEpic(1);
-        assertEquals((LocalDateTime.MAX), epic1.getStartTime().get());
+        assertEquals(Optional.empty(), epic1.getStartTime());
     }
 
-    //************ Расчет времени окончания Эпика ************
+    /**
+     * Расчет времени окончания Эпика
+     **/
     @Test
     void shouldSetEndTimeOfEpic() {
         Epic epic1 = manager.createEpic(new Epic("Эпик 1", "...", Status.NEW));
@@ -426,17 +432,19 @@ abstract class TaskManagerTest<T extends TaskManager> {
         Subtask subtask3 = manager.createSubtask(new Subtask(epic1.getId(), "Сабтакс 1.3",
                 "...", Status.NEW));
         manager.setEndTimeOfEpic(1);
-        assertEquals(LocalDateTime.MIN, epic1.getEndTime().get());
+        assertEquals(Optional.empty(), epic1.getEndTime());
     }
 
     @Test
     void shouldSetNullEndTimeOfNullEpic() {
         Epic epic1 = manager.createEpic(new Epic("Эпик 1", "...", Status.NEW));
         manager.setEndTimeOfEpic(1);
-        assertEquals(LocalDateTime.MIN, epic1.getEndTime().get());
+        assertEquals(Optional.empty(), epic1.getEndTime());
     }
 
-    //************ Сортировка по времени ************
+    /**
+     * Сортировка по времени
+     **/
     @Test
     void shouldGetPrioritizedTasks() {
         Epic epic1 = manager.createEpic(new Epic("Эпик 1", "...", Status.NEW));
@@ -460,24 +468,30 @@ abstract class TaskManagerTest<T extends TaskManager> {
         assertTrue(prioritizedTasks.isEmpty());
     }
 
-    //************ Проверка задач на пересечение ************
+    /**
+     * Проверка задач на пересечение
+     **/
     @Test
     void shouldFindIntersection() {
-        final RuntimeException ex = assertThrows(RuntimeException.class, new Executable() {
-            @Override
-            public void execute() {
-                Epic epic1 = manager.createEpic(new Epic("Эпик 1", "...", Status.NEW));
-                Subtask subtask1 = manager.createSubtask(new Subtask(epic1.getId(), "Сабтакс 1.1",
-                        "...", Status.NEW,
-                        LocalDateTime.of(2000, 1, 1, 0, 0, 0), 15));
-                Subtask subtask2 = manager.createSubtask(new Subtask(epic1.getId(), "Сабтакс 1.2",
-                        "...", Status.NEW,
-                        LocalDateTime.of(2000, 1, 1, 0, 0, 0), 17));
-                Subtask subtask3 = manager.createSubtask(new Subtask(epic1.getId(), "Сабтакс 1.3",
-                        "...", Status.NEW));
-            }
+        final RuntimeException ex = assertThrows(ManagerSaveException.class, () -> {
+            Epic epic1 = manager.createEpic(new Epic("Эпик 1", "...", Status.NEW));
+            Subtask subtask1 = manager.createSubtask(new Subtask(epic1.getId(), "Сабтакс 1.1",
+                    "...", Status.NEW,
+                    LocalDateTime.of(2000, 1, 1, 0, 0, 0), 15));
+            Subtask subtask2 = manager.createSubtask(new Subtask(epic1.getId(), "Сабтакс 1.2",
+                    "...", Status.NEW,
+                    LocalDateTime.of(2000, 1, 1, 0, 0, 0), 17));
         });
-        assertEquals("Задачи пересекаются во времени", ex.getMessage());
+        final RuntimeException ex1 = assertThrows(ManagerSaveException.class, () -> {
+            Task task1 = manager.createTask(new Task("Задача 1", "...", Status.NEW,
+                    LocalDateTime.of(2000, 1, 3, 0, 0, 0), 15));
+            Task task2 = manager.createTask(new Task("Задача 2", "...", Status.NEW,
+                    LocalDateTime.of(2000, 1, 3, 0, 0, 0), 5));
+        });
+        assertEquals(ManagerSaveException.class, ex.getClass());
+        assertEquals("Нельзя сохранить задачу. Задачи пересекаются во времени", ex.getMessage());
+        assertEquals(ManagerSaveException.class, ex1.getClass());
+        assertEquals("Нельзя сохранить задачу. Задачи пересекаются во времени", ex1.getMessage());
     }
 }
 

@@ -1,16 +1,21 @@
-package manager;
+package managers;
 
-import task.*;
+import tasks.Task;
 
-import java.util.*;
-
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class InMemoryHistoryManager implements HistoryManager {
 
-    private CustomLinkedList<Task> customLinkedList = new CustomLinkedList();
-    private Map<Integer, Node<Task>> tableOfUniqueHistory = new HashMap<>();
+    private final CustomLinkedList<Task> customLinkedList = new CustomLinkedList();
+    private final Map<Integer, Node<Task>> tableOfUniqueHistory = new HashMap<>();
 
-    //************ Добавление задачи в просмотренные ************
+
+    /**
+     * Добавление задачи в просмотренные
+     **/
     @Override
     public void add(Task task) {
         if (tableOfUniqueHistory.containsKey(task.getId())) {
@@ -19,13 +24,17 @@ public class InMemoryHistoryManager implements HistoryManager {
         customLinkedList.linkLast(task);
     }
 
-    //************ История просмотров задач ************
+    /**
+     * История просмотров задач
+     **/
     @Override
     public List<Task> getHistory() {
         return customLinkedList.getTasks();
     }
 
-    //************ Удаление задачи из просмотренных ************
+    /**
+     * Удаление задачи из просмотренных
+     **/
     @Override
     public void remove(int id) {
         if (tableOfUniqueHistory.containsKey(id)) {
@@ -34,12 +43,16 @@ public class InMemoryHistoryManager implements HistoryManager {
         }
     }
 
-    //************ Класс  CustomLinkedList ************
+    /**
+     * Класс  CustomLinkedList
+     **/
     public class CustomLinkedList<T> {
         public Node<T> head;
         public Node<T> tail;
 
-        //************ Добавляет задачу последней в двухсвязный список ************
+        /**
+         * Добавляет задачу последней в двухсвязный список
+         **/
         public void linkLast(Task task) {
             final Node<T> oldTail = tail;
             final Node<T> newNode = new Node<>(oldTail, task, null);
@@ -61,7 +74,9 @@ public class InMemoryHistoryManager implements HistoryManager {
             return listOfHistory;
         }
 
-        //************ Удаление узла ************
+        /**
+         * Удаление узла
+         **/
         public void removeNode(Node node) {
             if (tableOfUniqueHistory.containsKey(node.data.getId())) {
                 if (node.prev == null && node.next == null) { //null
@@ -81,7 +96,9 @@ public class InMemoryHistoryManager implements HistoryManager {
         }
     }
 
-    //************ Класс Node ************
+    /**
+     * Класс Node
+     **/
     public class Node<T> {
 
         public Task data;

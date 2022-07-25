@@ -1,4 +1,4 @@
-package task;
+package tasks;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;

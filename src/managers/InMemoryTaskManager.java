@@ -1,9 +1,9 @@
-package manager;
+package managers;
 
-import task.Epic;
-import task.Status;
-import task.Subtask;
-import task.Task;
+import tasks.Epic;
+import tasks.Status;
+import tasks.Subtask;
+import tasks.Task;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -20,23 +20,40 @@ public class InMemoryTaskManager implements TaskManager {
         return ++id;
     }
 
-    //************ Список задач ************
+    /**
+     * Список задач
+     **/
     @Override
     public ArrayList<Task> getTask() {
-        return new ArrayList<>(tasks.values());
+        if (tasks != null) {
+            return new ArrayList<>(tasks.values());
+        } else {
+            return new ArrayList<>();
+        }
     }
 
     @Override
     public ArrayList<Subtask> getSubtask() {
-        return new ArrayList<>(subtasks.values());
+        if (subtasks != null) {
+            return new ArrayList<>(subtasks.values());
+        } else {
+            return new ArrayList<>();
+        }
     }
+
 
     @Override
     public ArrayList<Epic> getEpic() {
-        return new ArrayList<>(epics.values());
+        if (epics != null) {
+            return new ArrayList<>(epics.values());
+        } else {
+            return new ArrayList<>();
+        }
     }
 
-    //************ Получение по идентификатору ************
+    /**
+     * Получение по идентификатору
+     **/
     @Override
     public Task getTaskById(int id) {
         historyManager.add(tasks.get(id));
@@ -55,13 +72,20 @@ public class InMemoryTaskManager implements TaskManager {
         return epics.get(id);
     }
 
-    //************ Создание ************
+    /**
+     * Создание
+     **/
     @Override
     public Task createTask(Task task) {
         int idByTask = generateId();
         task.setId(idByTask);
         tasks.put(idByTask, task);
-        findIntersection();
+        try {
+            findIntersection();
+        } catch (RuntimeException e) {
+            tasks.remove(idByTask, task);
+            throw new ManagerSaveException("Нельзя сохранить задачу. Задачи пересекаются во времени");
+        }
         return task;
     }
 
@@ -70,6 +94,12 @@ public class InMemoryTaskManager implements TaskManager {
         int idByEpic = generateId();
         epic.setId(idByEpic);
         epics.put(idByEpic, epic);
+        try {
+            findIntersection();
+        } catch (RuntimeException e) {
+            epics.remove(idByEpic, epic);
+            throw new ManagerSaveException("Нельзя сохранить задачу. Задачи пересекаются во времени");
+        }
         return epic;
     }
 
@@ -79,29 +109,48 @@ public class InMemoryTaskManager implements TaskManager {
             int idBySubtask = generateId();
             subtask.setId(idBySubtask);
             subtasks.put(idBySubtask, subtask);
+            try {
+                findIntersection();
+            } catch (RuntimeException e) {
+                subtasks.remove(idBySubtask, subtask);
+                throw new ManagerSaveException("Нельзя сохранить задачу. Задачи пересекаются во времени");
+            }
             epics.get(subtask.getEpicId()).addSubtask(idBySubtask);
             updateStatusEpic(epics.get(subtask.getEpicId()));
+            setStartTimeOfEpic(subtask.getEpicId());
+            findDurationOfEpic(subtask.getEpicId());
+            setEndTimeOfEpic(subtask.getEpicId());
+        } else {
+            throw new ManagerSaveException("Нельзя сохранить задачу. Нет эпика с таким id");
         }
-        findIntersection();
-        setStartTimeOfEpic(subtask.getEpicId());
-        findDurationOfEpic(subtask.getEpicId());
-        setEndTimeOfEpic(subtask.getEpicId());
         return subtask;
     }
 
-    //************ Обновление ************
+    /**
+     * Обновление
+     **/
     @Override
     public void updateTask(Task task) {
         tasks.put(task.getId(), task);
-        findIntersection();
+        try {
+            findIntersection();
+        } catch (RuntimeException e) {
+            tasks.remove(task.getId(), task);
+            throw new ManagerSaveException("Нельзя сохранить задачу. Задачи пересекаются во времени");
+        }
     }
 
     @Override
     public void updateSubtask(Subtask subtask) {
         subtasks.put(subtask.getId(), subtask);
+        try {
+            findIntersection();
+        } catch (RuntimeException e) {
+            subtasks.remove(subtask.getId(), subtask);
+            throw new ManagerSaveException("Нельзя сохранить задачу. Задачи пересекаются во времени");
+        }
         int epicId = subtask.getEpicId();
         updateStatusEpic(epics.get(epicId));
-        findIntersection();
         setStartTimeOfEpic(epicId);
         findDurationOfEpic(epicId);
         setEndTimeOfEpic(epicId);
@@ -110,9 +159,17 @@ public class InMemoryTaskManager implements TaskManager {
     @Override
     public void updateEpic(Epic epic) {
         epics.put(epic.getId(), epic);
+        try {
+            findIntersection();
+        } catch (RuntimeException e) {
+            epics.remove(epic.getId(), epic);
+            throw new ManagerSaveException("Нельзя сохранить задачу. Задачи пересекаются во времени");
+        }
     }
 
-    //************ Удаление по идентификатору ************
+    /**
+     * Удаление по идентификатору
+     **/
     @Override
     public void removeTaskById(int id) {
         if (tasks.containsKey(id)) {
@@ -148,7 +205,46 @@ public class InMemoryTaskManager implements TaskManager {
         historyManager.remove(id);
     }
 
-    //************ Получение списка всех подзадач эпика ************
+    /**
+     * Удаление спика задач
+     **/
+    @Override
+    public void removeAllTasks() {
+        for (Integer id : tasks.keySet()) {
+            historyManager.remove(id);
+        }
+        tasks.clear();
+    }
+
+    @Override
+    public void removeAllSubtasks() {
+        for (Integer id : subtasks.keySet()) {
+            historyManager.remove(id);
+            int epicId = subtasks.get(id).getEpicId();
+            epics.get(epicId).removeSubtask(id);
+            subtasks.remove(id);
+            updateStatusEpic(epics.get(epicId));
+            setStartTimeOfEpic(epicId);
+            findDurationOfEpic(epicId);
+            setEndTimeOfEpic(epicId);
+        }
+    }
+
+    @Override
+    public void removeAllEpics() {
+        for (Integer id : epics.keySet()) {
+            for (int elem : epics.get(id).getSubtaskIds()) {
+                historyManager.remove(elem);
+            }
+            historyManager.remove(id);
+            epics.get(id).clearSubtasks();
+        }
+        epics.clear();
+    }
+
+    /**
+     * Получение списка всех подзадач эпика
+     **/
     @Override
     public ArrayList<Subtask> getListOfSubtaskByEpic(int id) {
         ArrayList<Subtask> listOfSubtasksByEpic = new ArrayList<>();
@@ -158,7 +254,9 @@ public class InMemoryTaskManager implements TaskManager {
         return listOfSubtasksByEpic;
     }
 
-    //************ Обновление статуса эпика ************
+    /**
+     * Обновление статуса эпика
+     **/
     @Override
     public void updateStatusEpic(Epic epic) {
         ArrayList<Integer> listOfSubtaskIdsByEpic = epic.getSubtaskIds();
@@ -183,13 +281,17 @@ public class InMemoryTaskManager implements TaskManager {
         }
     }
 
-    //************ Список просмотренных задач ************
+    /**
+     * Список просмотренных задач
+     **/
     @Override
     public List<Task> getHistory() {
         return historyManager.getHistory();
     }
 
-    //************ Расчет продолжительности Эпика ************
+    /**
+     * Расчет продолжительности Эпика
+     **/
     @Override
     public void findDurationOfEpic(int epicId) {
         long duration = 0;
@@ -199,7 +301,9 @@ public class InMemoryTaskManager implements TaskManager {
         epics.get(epicId).setDuration(duration);
     }
 
-    //************ Расчет времени старта Эпика ************
+    /**
+     * Расчет времени старта Эпика
+     **/
     @Override
     public void setStartTimeOfEpic(int epicId) {
         if (epics.get(epicId) == null) {
@@ -212,10 +316,16 @@ public class InMemoryTaskManager implements TaskManager {
                 startTime = optionalStartTime.get();
             }
         }
-        epics.get(epicId).setStartTime(Optional.of(startTime));
+        if (startTime == LocalDateTime.MAX) {
+            epics.get(epicId).setEndTime(Optional.empty());
+        } else {
+            epics.get(epicId).setStartTime(Optional.of(startTime));
+        }
     }
 
-    //************ Расчет времени окончания Эпика ************
+    /**
+     * Расчет времени окончания Эпика
+     **/
     @Override
     public void setEndTimeOfEpic(int epicId) {
         if (epics.get(epicId) == null) {
@@ -228,10 +338,16 @@ public class InMemoryTaskManager implements TaskManager {
                 endTime = optionalEndTime.get();
             }
         }
-        epics.get(epicId).setEndTime(Optional.of(endTime));
+        if (endTime == LocalDateTime.MIN) {
+            epics.get(epicId).setEndTime(Optional.empty());
+        } else {
+            epics.get(epicId).setEndTime(Optional.of(endTime));
+        }
     }
 
-    //************ Сортировка по времени ************
+    /**
+     * Сортировка по времени
+     **/
     @Override
     public TreeSet<Task> getPrioritizedTasks() {
         Comparator<Task> comparator = new Comparator<Task>() {
@@ -269,7 +385,9 @@ public class InMemoryTaskManager implements TaskManager {
         return listOfTasks;
     }
 
-    //************ Проверка задач на пересечение ************
+    /**
+     * Проверка задач на пересечение
+     **/
     @Override
     public void findIntersection() {
         List<Task> tasksList = new ArrayList<>();
